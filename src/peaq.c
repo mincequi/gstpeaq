@@ -24,6 +24,8 @@
 #include <glib/gprintf.h>
 #include <stdlib.h>
 
+#include <gst/gstplugin.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -73,6 +75,8 @@ my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
   }
   return TRUE;
 }
+
+GST_PLUGIN_STATIC_DECLARE(peaq);
 
 int
 main(int argc, char *argv[])
@@ -145,9 +149,16 @@ main(int argc, char *argv[])
 
   peaq = gst_element_factory_make ("peaq", "peaq");
   if (!peaq) {
-    puts ("Error: peaq element could not be instantiated - is the plugin installed correctly?");
+    puts ("Warning: peaq plugin is not installed - registering statically");
+    GST_PLUGIN_STATIC_REGISTER(peaq);
+  }
+
+  peaq = gst_element_factory_make ("peaq", "peaq");
+  if (!peaq) {
+    puts ("Error: peaq element could not be instantiated");
     exit (2);
   }
+
   gst_object_ref_sink (peaq);
   g_object_set (G_OBJECT (peaq), "advanced", advanced,
                 "console_output", FALSE, NULL);
@@ -156,12 +167,12 @@ main(int argc, char *argv[])
     puts ("Error: filesrc element could not be instantiated");
     exit (2);
   }
+  g_object_set (G_OBJECT (ref_source), "location", reffilename, NULL);
   ref_parser = gst_element_factory_make ("wavparse", "ref_wav-parser");
   if (!ref_parser) {
     puts ("Error: wavparse element could not be instantiated");
     exit (2);
   }
-  g_object_set (G_OBJECT (ref_source), "location", reffilename, NULL);
   ref_converter = gst_element_factory_make ("audioconvert", "ref-converter");
   if (!ref_converter) {
     puts ("Error: audioconvert element could not be instantiated");
